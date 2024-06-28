@@ -1,72 +1,88 @@
+from flask import Flask,request,jsonify
 import requests
 from bs4 import BeautifulSoup
+
+app = Flask(__name__)
 
 def fetch_page(url):
     try:
         response = requests.get(url)
+        print(response.status_code)
         response.raise_for_status()
         return response.text
     except requests.exceptions.RequestException as e:
         print(f"An error occurred: {e}")
         return None
 
-def parse_flipkart(html_content):
+def parse_flipkart(html_content,productName):
     soup = BeautifulSoup(html_content, 'html.parser')
     products = []
     
-    name = soup.find('div', class_='KzDlHZ')
-        # link = product.find('a', class_='IRpwTa')
+    if soup.find('div', class_='KzDlHZ'):
+        name = soup.find('div', class_='KzDlHZ').text
+    else:
+        name = productName
+    # link = product.find('a', class_='IRpwTa')
     dis_price = soup.find('div', class_='Nx9bqj')
     actual_price = soup.find('div', class_='yRaY8j')
     discount = soup.find('div', class_='UkUFwK')
         
     if dis_price and actual_price and discount:
             products.append({
-                'name': name.text,
+                'name': name,
                 'dis_price': dis_price.text,
                 'actual_price': actual_price.text,
                 'discount': discount.text,
             })
     return products
 
-def parse_amazon(html_content):
+def parse_amazon(html_content,productName):
     soup = BeautifulSoup(html_content, 'html.parser')
     products = []
-    for product in soup.find_all('div', class_='s-result-item'):
-        name = product.find('span', class_='a-size-medium')
-        link = product.find('a', class_='a-link-normal')
-        dis_price = product.find('span', class_='a-price-whole')
-        actual_price = product.find('span', class_='a-price a-text-price')
-        discount = product.find('span', class_='a-letter-space')
+    if soup.find('span', class_='a-size-medium a-color-base a-text-normal'):
+        print ("inside name")
+        name = soup.find('span', class_='a-size-medium a-color-base a-text-normal').text
+    else:
+        name = productName
+    dis_price = soup.find('span', class_='a-price-whole')
+    actual_price = soup.find('span', class_='a-offscreen')
+    discount = soup.find('span', class_='a-letter-space')
+    
         
-        if name and link and dis_price and actual_price and discount:
+    if name and dis_price and actual_price and discount:
             products.append({
-                'name': name.text.strip(),
-                'link': 'https://www.amazon.com' + link['href'],
+                'name': name,
                 'dis_price': dis_price.text.strip(),
                 'actual_price': actual_price.text.strip(),
-                'discount': discount.text.strip(),
+                'discount': discount.text,
             })
     return products
 
-def main():
-    flipkart_url = 'https://www.flipkart.com/search?q=macbookpro'
-    # amazon_url = 'https://www.amazon.com/s?k=your_product_query'
+@app.route('/search', methods=['GET'])
+def scrap():
+    name = request.args.get('name')
+    flipkart_product, amazon_product = None, None
+    if not name:
+        return jsonify({'error': 'Missing Product Name'}), 400
+    
+    flipkart_url = f"https://www.flipkart.com/search?q={name}"
+    amazon_url = f'https://www.amazon.in/s?k={name}'
+    
+    if flipkart_url:
+        print("inside flipkart")
+        flipkart_html = fetch_page(flipkart_url)
+        if flipkart_html:
+            flipkart_product = parse_flipkart(flipkart_html,name)
+    
+    if amazon_url:
+        print("inside amazon")
+        amazon_html = fetch_page(amazon_url)
+        if amazon_html:
+            amazon_product = parse_amazon(amazon_html,name)
+            
 
-    flipkart_html = fetch_page(flipkart_url)
-    # amazon_html = fetch_page(amazon_url)
+    return jsonify({'flipkart': flipkart_product,'amazon':amazon_product}), 200
 
-    if flipkart_html:
-        flipkart_products = parse_flipkart(flipkart_html)
-        print("Flipkart Products:")
-        for product in flipkart_products:
-            print(product)
-
-    # if amazon_html:
-    #     amazon_products = parse_amazon(amazon_html)
-    #     print("Amazon Products:")
-    #     for product in amazon_products:
-    #         print(product)
 
 if __name__ == "__main__":
-    main()
+    app.run(debug=True)
