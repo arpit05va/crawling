@@ -1,0 +1,43 @@
+<div>
+  <h1 style="text-align: center">Scraper</h1>
+</div>
+
+<div id="content">
+  <div class="search-container">
+    <input type="text" [(ngModel)]="productName" placeholder="Search...." />
+    <button id="searchButton" (click)="fetchProduct()">Fetch Products</button>
+  </div>
+</div>
+
+<div *ngIf="productSearched" class="product-container">
+  <div class="product-card">
+    <div *ngIf="flipkartProduct; else noFProduct">
+      <h3 style="text-align: center;">Flipkart</h3>
+      <p><strong>Name:</strong> {{ flipkartProduct[0].name }}</p>
+      <p><strong>Discounted Price:</strong> {{ flipkartProduct[0].dis_price }}</p>
+      <p><strong>Actual Price:</strong> {{ flipkartProduct[0].actual_price }}</p>
+      <p><strong>Discount:</strong> {{ flipkartProduct[0].discount }}</p>
+    </div>
+    <ng-template #noFProduct>
+      <h3 style="text-align: center;">Flipkart</h3>
+      <p>Please try searching for a different product.</p>
+    </ng-template>
+  </div>
+  
+  <div class="product-card">
+    <div *ngIf="amazonProduct; else noProduct">
+      <h3 style="text-align: center;">Amazon</h3>
+      <p><strong>Name:</strong> {{ amazonProduct[0].name }}</p>
+      <p><strong>Discounted Price:</strong> {{ amazonProduct[0].dis_price }}</p>
+      <p><strong>Actual Price:</strong> {{ amazonProduct[0].actual_price }}</p>
+      <p><strong>Discount:</strong> {{ amazonProduct[0].discount }}</p>
+    </div>
+    <ng-template #noProduct>
+      <h3 style="text-align: center;">Amazon</h3>
+      <p>Please try searching for a different product.</p>
+    </ng-template>
+  </div>
+</div>
+
+
+
